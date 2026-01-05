@@ -1,0 +1,135 @@
+# Example configuration demonstrating AND/OR conditional logic
+# This file shows various examples of the new conditions feature
+
+mode: add_only
+
+rules:
+  # Example 1: Simple OR - Multiple people
+  # "Photos with Jay OR Alice OR Bob"
+  - id: family-photos-2025
+    album_name: "Family Photos 2025"
+    taken_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-12-31T23:59:59.999Z"
+    conditions:
+      or:
+        - people: {include: ["Jay"]}
+        - people: {include: ["Alice"]}
+        - people: {include: ["Bob"]}
+
+  # Example 2: Simple AND - Favorites from specific camera
+  # "Photos that are favorites AND from Apple camera"
+  - id: favorite-apple-photos
+    album_name: "Favorite Apple Photos"
+    taken_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-12-31T23:59:59.999Z"
+    conditions:
+      and:
+        - is_favorite: true
+        - camera: {make: "Apple"}
+
+  # Example 3: Complex nested - Family photos with quality
+  # "(Jay OR Alice) AND (iPhone OR favorites)"
+  - id: quality-family-photos
+    album_name: "Quality Family Photos"
+    taken_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-12-31T23:59:59.999Z"
+    conditions:
+      and:
+        - or:
+            - people: {include: ["Jay"]}
+            - people: {include: ["Alice"]}
+        - or:
+            - camera: {make: "Apple"}
+            - is_favorite: true
+
+  # Example 4: Multiple cameras OR conditions
+  # "Photos from Apple OR Canon OR Sony"
+  - id: all-cameras-2025
+    album_name: "All Cameras 2025"
+    taken_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-12-31T23:59:59.999Z"
+    conditions:
+      or:
+        - camera: {make: "Apple"}
+        - camera: {make: "Canon"}
+        - camera: {make: "Sony"}
+
+  # Example 5: Complex multi-level nesting
+  # "(Favorites AND iPhone) OR (People AND Videos)"
+  - id: favorites-or-people-videos
+    album_name: "Favorites or People Videos"
+    taken_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-12-31T23:59:59.999Z"
+    conditions:
+      or:
+        - and:
+            - is_favorite: true
+            - camera: {make: "Apple"}
+        - and:
+            - people: {include: ["Jay", "Alice"]}
+            - asset_types: ["VIDEO"]
+
+  # Example 6: Backward compatible - Old filters format still works!
+  # This rule uses the old format and will work exactly as before
+  - id: old-style-favorites
+    album_name: "Old Style Favorites"
+    taken_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-12-31T23:59:59.999Z"
+    filters:
+      is_favorite: true
+      asset_types: ["IMAGE"]
+      camera:
+        make: "Apple"
+
+  # Example 7: Images AND Videos (multiple asset types)
+  - id: all-media-types
+    album_name: "All Media Types"
+    taken_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-12-31T23:59:59.999Z"
+    conditions:
+      or:
+        - asset_types: ["IMAGE"]
+        - asset_types: ["VIDEO"]
+
+  # Example 8: Specific camera models
+  # "iPhone 15 Pro OR Pixel 8 Pro"
+  - id: flagship-phones
+    album_name: "Flagship Phone Photos"
+    taken_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-12-31T23:59:59.999Z"
+    conditions:
+      or:
+        - and:
+            - camera: {make: "Apple"}
+            - camera: {model: "iPhone 15 Pro"}
+        - and:
+            - camera: {make: "Google"}
+            - camera: {model: "Pixel 8 Pro"}
+
+# Performance Notes:
+# - AND operations with compatible filters are optimized into single API call
+# - OR operations require multiple API calls (one per branch)
+# - Nested conditions may result in multiple API calls
+# - Date ranges are applied efficiently to all conditions
+
+# Migration from old format:
+# Old format (implicit AND):
+#   filters:
+#     is_favorite: true
+#     camera: {make: "Apple"}
+#
+# New format (explicit AND):
+#   conditions:
+#     and:
+#       - is_favorite: true
+#       - camera: {make: "Apple"}
+#
+# Both formats are fully supported and work identically!

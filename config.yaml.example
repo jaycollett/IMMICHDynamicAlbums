@@ -1,0 +1,316 @@
+# Sync mode: "add_only" (safer, only adds new assets) or "sync" (adds and removes)
+mode: "add_only"
+
+# Rules define which assets should be grouped into which albums
+rules:
+  # ==============================================================================
+  # RECURRING RULES (NEW! Automatically creates albums for multiple years)
+  # ==============================================================================
+  #
+  # IMPORTANT: Timezone matters! Photos taken on Christmas Day in your timezone
+  # may be stored in IMMICH with a different UTC timestamp. Specify your local
+  # timezone to ensure photos are captured for the correct local calendar day.
+
+  # Example: Christmas albums for every year (2000-2030)
+  # This single rule will create separate albums: "Christmas 2000", "Christmas 2001", etc.
+  - id: "christmas"
+    recurring: true
+    month_day: "12-25"                   # Format: "MM-DD"
+    duration_days: 1                     # Number of days to include (default: 1)
+    timezone: "America/New_York"         # REQUIRED: IANA timezone (EST/EDT in this case)
+    album_name_template: "Christmas {year}"  # {year} will be replaced with actual year
+    description: "Auto-managed by dynamic-albums script"
+    year_range: [2000, 2030]             # [start_year, end_year] inclusive
+    filters:
+      asset_types:
+        - IMAGE
+        - VIDEO
+
+  # Example: Valentine's Day recurring rule
+  - id: "valentines"
+    recurring: true
+    month_day: "02-14"
+    duration_days: 1
+    timezone: "America/New_York"         # Use your local timezone
+    album_name_template: "Valentine's Day {year}"
+    year_range: [2010, 2030]
+    filters:
+      asset_types: [IMAGE, VIDEO]
+
+  # Example: Multi-day recurring event (Birthday party)
+  - id: "birthday-party"
+    recurring: true
+    month_day: "07-15"
+    duration_days: 3                     # Includes 7/15, 7/16, and 7/17
+    timezone: "America/Los_Angeles"      # Different timezone example (PST/PDT)
+    album_name_template: "Birthday Party {year}"
+    year_range: [2015, 2030]
+    filters:
+      asset_types: [IMAGE, VIDEO]
+
+  # Example: Birthday with OR logic for family members (NEW FEATURE!)
+  # This demonstrates the new AND/OR conditional logic feature
+  - id: "birthday-example"
+    recurring: true
+    month_day: "03-15"
+    timezone: "America/New_York"
+    duration_days: 1
+    album_name_template: "Birthday Example {year}"
+    description: "Includes photos with ANY family member"
+    year_range: [2000, 2030]
+    conditions:
+      and:
+        - asset_types: [IMAGE, VIDEO]
+        - or:
+            - people: {include: ["Person1"]}
+            - people: {include: ["Person2"]}
+            - people: {include: ["Person3"]}
+
+  # ==============================================================================
+  # BACKWARD COMPATIBLE FORMAT (still fully supported)
+  # ==============================================================================
+
+  # Example: Christmas 2025 album - basic date range with sharing
+  - id: "christmas-2025"
+    album_name: "Christmas 2025"
+    description: "Auto-managed by dynamic-albums script"
+    share_with: ALL  # Share with all users (overrides global setting)
+    taken_range_utc:
+      start: "2025-12-25T00:00:00.000Z"
+      end: "2025-12-26T00:00:00.000Z"
+
+  # Example: Summer 2025 album - date range with specific users
+  - id: "summer-2025"
+    album_name: "Summer 2025"
+    description: "Auto-managed by dynamic-albums script"
+    share_with:
+      - "family1@example.com"
+      - "family2@example.com"
+    taken_range_utc:
+      start: "2025-06-01T00:00:00.000Z"
+      end: "2025-09-01T00:00:00.000Z"
+
+  # Example: Using created date instead of taken date (private album)
+  - id: "recent-uploads"
+    album_name: "Recent Uploads"
+    description: "Assets uploaded in the last 30 days"
+    share_with: []  # Explicitly private (overrides global sharing)
+    created_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-02-01T00:00:00.000Z"
+
+  # ==============================================================================
+  # NEW FILTER FORMAT (additional filtering options)
+  # ==============================================================================
+
+  # Example: Favorite images only
+  - id: "favorites-2025"
+    album_name: "My Favorites 2025"
+    description: "All favorite images from 2025"
+    taken_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-12-31T23:59:59.999Z"
+    filters:
+      is_favorite: true
+      asset_types:
+        - IMAGE
+
+  # Example: Include videos (videos excluded by default)
+  - id: "vacation-media"
+    album_name: "Vacation 2025 - All Media"
+    description: "Photos and videos from vacation"
+    taken_range_utc:
+      start: "2025-07-01T00:00:00.000Z"
+      end: "2025-07-15T23:59:59.999Z"
+    filters:
+      asset_types:
+        - IMAGE
+        - VIDEO
+
+  # Example: Filter by camera make/model
+  - id: "iphone-photos"
+    album_name: "iPhone Photos"
+    description: "All photos taken with iPhone"
+    taken_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-12-31T23:59:59.999Z"
+    filters:
+      camera:
+        make: "Apple"
+        # Optional: also filter by model
+        # model: "iPhone 15 Pro"
+      asset_types:
+        - IMAGE
+
+  # Example: Filter by tags (if supported by your Immich version)
+  - id: "family-photos"
+    album_name: "Family Photos"
+    description: "Photos tagged with family members"
+    taken_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-12-31T23:59:59.999Z"
+    filters:
+      tags:
+        include:
+          - "family"
+          - "kids"
+      asset_types:
+        - IMAGE
+
+  # Example: Complex filters - favorite iPhone photos, excluding certain tags
+  - id: "best-iphone-shots"
+    album_name: "Best iPhone Shots 2025"
+    description: "Favorite photos from iPhone, excluding screenshots"
+    taken_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-12-31T23:59:59.999Z"
+    filters:
+      is_favorite: true
+      camera:
+        make: "Apple"
+      tags:
+        exclude:
+          - "screenshot"
+          - "duplicate"
+      asset_types:
+        - IMAGE
+
+  # Example: Filter by resolution (NEW!)
+  # Useful for finding screenshots or specific photo dimensions
+  - id: "screenshots"
+    album_name: "Screenshots for Review"
+    description: "Auto-detected screenshots by resolution"
+    filters:
+      resolution:
+        include:
+          - [1320, 2868]  # iPhone 15 Pro portrait screenshots
+          - [1080, 2400]  # Older Android portrait screenshots
+          - [2868, 1320]  # iPhone 15 Pro landscape screenshots
+      asset_types:
+        - IMAGE
+
+  # Example: High-resolution photos only (4K and above)
+  - id: "4k-photos"
+    album_name: "4K Photos 2025"
+    description: "High-resolution photos (3840x2160 and above)"
+    taken_range_utc:
+      start: "2025-01-01T00:00:00.000Z"
+      end: "2025-12-31T23:59:59.999Z"
+    filters:
+      resolution:
+        include:
+          - [3840, 2160]  # 4K landscape
+          - [2160, 3840]  # 4K portrait
+          - [4032, 3024]  # iPhone 15 Pro Max
+      asset_types:
+        - IMAGE
+
+# ==============================================================================
+# NOTES:
+# ==============================================================================
+#
+# AND/OR Conditional Logic (NEW!):
+#   - Use 'conditions:' for explicit AND/OR logic instead of 'filters:'
+#   - Cannot use both 'conditions' and 'filters' in the same rule
+#   - 'filters:' uses implicit AND (all filters must match)
+#   - 'conditions:' allows explicit AND/OR with unlimited nesting
+#   - Supported filters: is_favorite, asset_types, camera, people, tags
+#   - Examples:
+#     - Simple OR (any person):
+#       conditions:
+#         or:
+#           - people: {include: ["Person1"]}
+#           - people: {include: ["Person2"]}
+#     - Simple AND (favorites from iPhone):
+#       conditions:
+#         and:
+#           - is_favorite: true
+#           - camera: {make: "Apple"}
+#     - Nested (complex logic):
+#       conditions:
+#         and:
+#           - or:
+#               - people: {include: ["Jay"]}
+#               - people: {include: ["Alice"]}
+#           - or:
+#               - camera: {make: "Apple"}
+#               - is_favorite: true
+#   - Performance: OR requires multiple API calls (one per branch)
+#   - Backward compatible: Old 'filters:' format still works
+#
+# Album Sharing (Optional):
+#   - Global default: Set SHARE_WITH_ALL_USERS or SHARE_USER_IDS in .env
+#   - Per-rule override: Add 'share_with' field to any rule
+#   - Values:
+#     - share_with: ALL (share with all users)
+#     - share_with: ["email1@example.com", "email2@example.com"] (specific users)
+#     - share_with: [] (explicitly private, overrides global)
+#     - Omit field to use global default
+#   - Owner is automatically excluded from sharing
+#   - Sharing is checked and updated on all albums every sync run
+#   - Priority: per-rule > SHARE_USER_IDS > SHARE_WITH_ALL_USERS
+#
+# Timezone (Recurring Rules Only):
+#   - REQUIRED field for all recurring rules
+#   - Must be IANA timezone name (e.g., "America/New_York", not "EST")
+#   - Common US timezones:
+#     - America/New_York (Eastern - EST/EDT)
+#     - America/Chicago (Central - CST/CDT)
+#     - America/Denver (Mountain - MST/MDT)
+#     - America/Los_Angeles (Pacific - PST/PDT)
+#     - America/Phoenix (Arizona - no DST)
+#     - Pacific/Honolulu (Hawaii - no DST)
+#   - International examples:
+#     - Europe/London, Europe/Paris, Asia/Tokyo, Australia/Sydney
+#   - Use UTC for universal time (no daylight saving adjustments)
+#   - Set DEFAULT_TIMEZONE in .env to change the global default
+#   - Daylight Saving Time (DST) is handled automatically by the system
+#
+# Why Timezone Matters:
+#   - Photos taken at 11 PM on Christmas in New York (EST, UTC-5) are stored
+#     in IMMICH as 4 AM UTC the NEXT day (December 26)
+#   - Without timezone support, that photo wouldn't match a "Christmas" rule
+#   - With timezone: The rule captures the full local calendar day correctly
+#
+# Date Format (Regular Rules):
+#   - Must be ISO 8601 format with timezone
+#   - Examples:
+#     - 2025-12-25T00:00:00.000Z (UTC with milliseconds)
+#     - 2025-12-25T00:00:00Z (UTC without milliseconds)
+#     - 2025-12-25T12:00:00+05:30 (with timezone offset)
+#
+# Asset Types:
+#   - IMAGE (default, always included if not specified)
+#   - VIDEO (excluded by default due to limited GPS/face support in Immich)
+#   - AUDIO
+#   - OTHER
+#
+# Backward Compatibility:
+#   - Old configs without 'filters' section will continue to work
+#   - Default behavior: IMAGE assets only (same as before)
+#   - To include videos, explicitly add filters.asset_types: [IMAGE, VIDEO]
+#
+# Camera Filtering:
+#   - Uses EXIF metadata from the asset
+#   - Case-sensitive matching
+#   - Examples: "Apple", "Canon", "Sony", "Nikon"
+#
+# Tag Filtering:
+#   - Depends on Immich API support for tag filtering
+#   - May be filtered client-side if API doesn't support it
+#   - include: asset must have at least one of these tags
+#   - exclude: asset must not have any of these tags
+#
+# Resolution Filtering (NEW!):
+#   - Filter assets by exact width x height dimensions
+#   - Format: resolution.include: [[width, height], ...]
+#   - Multiple resolutions use OR logic (matches ANY specified resolution)
+#   - Client-side filtering (fetches metadata for each candidate asset)
+#   - Performance: Works best with date ranges or other filters (narrows candidates first)
+#   - Examples:
+#     - Screenshots: [[1320, 2868], [1080, 2400]]
+#     - 4K photos: [[3840, 2160], [2160, 3840]]
+#     - Square photos: [[1080, 1080], [2048, 2048]]
+#   - Resolution extracted from EXIF data (exifImageWidth/Height) with fallback to originalWidth/Height
+#   - Works with both 'filters' and 'conditions' formats
+#   - Performance note: Filtering 1000 assets takes ~10 seconds (parallel fetching)

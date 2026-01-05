@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  immich-dynamic-albums:
+    image: ghcr.io/jaycollett/immichdynamicalbums:latest
+    container_name: immich-dynamic-albums
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    volumes:
+      # Mount config file
+      - ./config.yaml:/app/config.yaml:ro
+      # Mount data directory for database persistence
+      - ./data:/app/data
+
+    # Run in continuous mode (hourly syncs by default)
+    # command: ["python", "src/main.py", "--config", "config.yaml"]
+
+    # Optional: uncomment to run once and exit
+    # command: ["python", "src/main.py", "--config", "config.yaml", "--once"]
+
+    # Optional: uncomment for dry-run mode (no changes)
+    # command: ["python", "src/main.py", "--config", "config.yaml", "--dry-run", "--once"]
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
