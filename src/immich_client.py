@@ -196,7 +196,9 @@ class ImmichClient:
             if next_page is None:
                 break
 
-            page = next_page
+            # Immich returns nextPage as a string; v3+ rejects a string
+            # page in the request, so coerce to int before re-sending
+            page = int(next_page)
             time.sleep(0.1)  # Be nice to the API
 
         if filter_by_type and asset_types:
