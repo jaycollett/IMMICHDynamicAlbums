@@ -5,7 +5,7 @@
 # and the runtime layer carries no Debian CVE backlog.
 
 # ---- Stage 1: build the virtualenv ----
-FROM python:3.13-alpine AS builder
+FROM python:3.14-alpine AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -21,7 +21,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ---- Stage 2: runtime ----
-FROM python:3.13-alpine
+FROM python:3.14-alpine
 
 # Set Python path
 ENV PYTHONPATH=/app \
