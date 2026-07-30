@@ -3,6 +3,12 @@ name: Build and Publish Docker
 on:
   release:
     types: [published]
+  # Weekly rebuild. Image staleness, not app code, is what produces most
+  # fixable Critical/High CVEs, so the newest release tag is rebuilt on a
+  # fresh base and repushed. Staggered across repos to spread the load.
+  schedule:
+    - cron: '10 6 * * 2'
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -19,11 +25,36 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+        with:
+          # Tags are needed so the scheduled rebuild can find the newest
+          # release to rebuild.
+          fetch-depth: 0
+
+      # Scheduled and manual runs carry no release event. Resolve the newest
+      # release tag ourselves and rebuild that exact revision, so the weekly
+      # run refreshes the published version rather than shipping whatever
+      # happens to be on the default branch.
+      - name: Resolve rebuild target
+        id: rebuild
+        if: github.event_name != 'release'
+        run: |
+          set -eu
+          TAG="$(git tag --sort=-v:refname | awk 'NR==1')"
+          if [ -z "$TAG" ]; then
+            echo "::error::No git tags found to rebuild."
+            exit 1
+          fi
+          git checkout --force --detach "$TAG"
+          echo "version=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Rebuilding release tag ${TAG}"
 
       - name: Extract version from tag
         id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION="${{ steps.rebuild.outputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
@@ -61,6 +92,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=raw,value=latest
+            type=raw,value=${{ steps.rebuild.outputs.version }},enable=${{ steps.rebuild.outputs.version != '' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -71,6 +103,23 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # CVE gate aligned with Harbor's policy (CRITICAL/HIGH, fixable only).
+      # On the weekly scheduled rebuild this reports without failing: a CVE
+      # published since the last release must not block the refresh, because
+      # the refresh is what fixes it. Release runs still fail hard.
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          vuln-type: os,library
+          format: table
+          exit-code: ${{ github.event_name == 'schedule' && '0' || '1' }}
 
       - name: Create release summary
         run: |
